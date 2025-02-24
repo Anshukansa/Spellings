@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Spelling Practice Game</title>
+  <title>Spelling Practice with Persistent Mistakes</title>
   <style>
     /* Basic styling for a clean look */
     body {
@@ -15,8 +15,11 @@
     }
     .container {
       margin-bottom: 20px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
     }
-    #game-container, #result-container {
+    #game-container, #result-container, #mistakes-container {
       display: none;
     }
     input[type="text"] {
@@ -50,6 +53,17 @@
     #message {
       margin-top: 10px;
     }
+    .mistakes-list {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    .mistakes-list li {
+      margin: 4px 0;
+    }
+    .mistakes-list button {
+      margin-left: 10px;
+      padding: 4px 8px;
+    }
   </style>
 </head>
 <body>
@@ -68,6 +82,20 @@
     
     <button id="start-btn">Start Game</button>
     <button id="practice-mistakes-btn">Practice Mistakes</button>
+    <button id="manage-mistakes-btn">Manage Mistakes</button>
+  </div>
+  
+  <!-- Mistakes management container -->
+  <div id="mistakes-container" class="container">
+    <h2>Manage All-Time Mistakes</h2>
+    <p>Add a new word to the mistakes list:</p>
+    <input type="text" id="add-mistake-input" placeholder="Word to add" />
+    <button id="add-mistake-btn">Add</button>
+    
+    <h3>Current Mistakes:</h3>
+    <ul id="mistakes-list" class="mistakes-list"></ul>
+    
+    <button id="close-mistakes-btn">Close</button>
   </div>
   
   <!-- Main game container -->
@@ -88,37 +116,137 @@
   </div>
 
   <script>
+    // ------------------
     // Global variables
-    let words = [];          // Words for the current game
-    let mistakes = [];       // List of misspelled words
-    let currentIndex = 0;    // Position in the words array (for in-line)
-    let score = 0;           // Score count
+    // ------------------
 
-    // HTML element references
-    const wordsInput = document.getElementById('words');
-    const modeSelect = document.getElementById('mode');
-    const startBtn = document.getElementById('start-btn');
-    const practiceMistakesBtn = document.getElementById('practice-mistakes-btn');
-    const gameContainer = document.getElementById('game-container');
-    const wordDisplay = document.getElementById('word-display');
-    const userInput = document.getElementById('user-input');
-    const checkBtn = document.getElementById('check-btn');
-    const message = document.getElementById('message');
-    const scoreDisplay = document.getElementById('score');
-    const quitBtn = document.getElementById('quit-btn');
-    const resultContainer = document.getElementById('result-container');
-    const finalScore = document.getElementById('final-score');
-    const mistakesMsg = document.getElementById('mistakes-msg');
-    const restartBtn = document.getElementById('restart-btn');
+    let words = [];              // Words for the current session
+    let currentIndex = 0;        // Position in the words array (for in-line mode)
+    let score = 0;               // Score for the current session
+    let sessionMistakes = [];    // Mistakes from the current game/session
 
+    // All-time mistakes loaded from localStorage (persists across sessions)
+    let globalMistakes = [];     
+
+    // ------------------
+    // Element references
+    // ------------------
+
+    const wordsInput             = document.getElementById('words');
+    const modeSelect             = document.getElementById('mode');
+    const startBtn               = document.getElementById('start-btn');
+    const practiceMistakesBtn    = document.getElementById('practice-mistakes-btn');
+    const manageMistakesBtn      = document.getElementById('manage-mistakes-btn');
+    const gameContainer          = document.getElementById('game-container');
+    const wordDisplay            = document.getElementById('word-display');
+    const userInput              = document.getElementById('user-input');
+    const checkBtn               = document.getElementById('check-btn');
+    const message                = document.getElementById('message');
+    const scoreDisplay           = document.getElementById('score');
+    const quitBtn                = document.getElementById('quit-btn');
+    const resultContainer        = document.getElementById('result-container');
+    const finalScore             = document.getElementById('final-score');
+    const mistakesMsg            = document.getElementById('mistakes-msg');
+    const restartBtn             = document.getElementById('restart-btn');
+    
+    // Mistakes management
+    const mistakesContainer      = document.getElementById('mistakes-container');
+    const mistakesList           = document.getElementById('mistakes-list');
+    const addMistakeInput        = document.getElementById('add-mistake-input');
+    const addMistakeBtn          = document.getElementById('add-mistake-btn');
+    const closeMistakesBtn       = document.getElementById('close-mistakes-btn');
+
+    // ------------------
     // Event listeners
+    // ------------------
+
+    document.addEventListener('DOMContentLoaded', loadGlobalMistakesFromLocalStorage);
     startBtn.addEventListener('click', startGame);
     practiceMistakesBtn.addEventListener('click', practiceMistakes);
+    manageMistakesBtn.addEventListener('click', openMistakesManager);
     checkBtn.addEventListener('click', checkAnswer);
     quitBtn.addEventListener('click', quitGame);
     restartBtn.addEventListener('click', restartGame);
+    
+    addMistakeBtn.addEventListener('click', addNewMistake);
+    closeMistakesBtn.addEventListener('click', closeMistakesManager);
 
-    // Start Game - use the words from the input
+    // ------------------
+    // Local Storage
+    // ------------------
+
+    function loadGlobalMistakesFromLocalStorage() {
+      const storedMistakes = localStorage.getItem('globalMistakesList');
+      if (storedMistakes) {
+        globalMistakes = JSON.parse(storedMistakes);
+      } else {
+        globalMistakes = [];
+      }
+      renderGlobalMistakes();
+    }
+
+    function saveGlobalMistakesToLocalStorage() {
+      localStorage.setItem('globalMistakesList', JSON.stringify(globalMistakes));
+    }
+
+    // ------------------
+    // Mistakes Management UI
+    // ------------------
+
+    function openMistakesManager() {
+      // Hide other sections
+      document.getElementById('input-container').style.display = 'none';
+      gameContainer.style.display = 'none';
+      resultContainer.style.display = 'none';
+
+      // Show the Mistakes Manager
+      mistakesContainer.style.display = 'block';
+      renderGlobalMistakes();
+    }
+
+    function closeMistakesManager() {
+      mistakesContainer.style.display = 'none';
+      document.getElementById('input-container').style.display = 'block';
+    }
+
+    function renderGlobalMistakes() {
+      mistakesList.innerHTML = "";
+      globalMistakes.forEach((word, index) => {
+        const li = document.createElement('li');
+        li.textContent = word;
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = "Remove";
+        removeBtn.addEventListener('click', () => removeMistake(index));
+        li.appendChild(removeBtn);
+        mistakesList.appendChild(li);
+      });
+    }
+
+    function addNewMistake() {
+      const newWord = addMistakeInput.value.trim();
+      if (newWord) {
+        if (!globalMistakes.includes(newWord)) {
+          globalMistakes.push(newWord);
+          saveGlobalMistakesToLocalStorage();
+          renderGlobalMistakes();
+        } else {
+          alert("This word is already in the mistakes list.");
+        }
+      }
+      addMistakeInput.value = "";
+    }
+
+    function removeMistake(index) {
+      globalMistakes.splice(index, 1);
+      saveGlobalMistakesToLocalStorage();
+      renderGlobalMistakes();
+    }
+
+    // ------------------
+    // Game Functions
+    // ------------------
+
+    // 1. Start Game
     function startGame() {
       const inputVal = wordsInput.value.trim();
       
@@ -135,48 +263,50 @@
         return;
       }
 
-      // Reset game state
+      // Reset session state
+      sessionMistakes = [];
       score = 0;
       currentIndex = 0;
       scoreDisplay.textContent = score;
       message.textContent = "";
       finalScore.textContent = "";
+      mistakesMsg.textContent = "";
 
       // Hide input section, show game section
       document.getElementById('input-container').style.display = 'none';
       resultContainer.style.display = 'none';
+      mistakesContainer.style.display = 'none';
       gameContainer.style.display = 'block';
 
-      // Begin with the first word
+      // Show the first word
       nextWord();
     }
 
-    // Practice only mistakes (if any exist)
+    // 2. Practice Mistakes (from all rounds, loaded from localStorage)
     function practiceMistakes() {
-      if (mistakes.length === 0) {
-        alert("No mistakes to practice!");
+      if (globalMistakes.length === 0) {
+        alert("No all-time mistakes to practice!");
         return;
       }
-      // Use the mistakes array as the new word list
-      words = [...mistakes];
-      mistakes = [];  // Clear mistakes so we can track new ones during practice
-
-      // Reset game state
+      words = [...globalMistakes]; // practice only words from the mistakes list
+      sessionMistakes = [];
       score = 0;
       currentIndex = 0;
       scoreDisplay.textContent = score;
       message.textContent = "";
       finalScore.textContent = "";
+      mistakesMsg.textContent = "";
 
-      // Hide input section, show game section
+      // Hide other sections
       document.getElementById('input-container').style.display = 'none';
       resultContainer.style.display = 'none';
+      mistakesContainer.style.display = 'none';
       gameContainer.style.display = 'block';
 
       nextWord();
     }
 
-    // Move to the next word
+    // 3. Move to the next word
     function nextWord() {
       if (currentIndex >= words.length) {
         // No more words, end the game
@@ -201,7 +331,7 @@
       speakWord(chosenWord);
     }
 
-    // Use SpeechSynthesis to speak the word
+    // 4. Speak the word using SpeechSynthesis
     function speakWord(word) {
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(word);
@@ -209,7 +339,7 @@
       }
     }
 
-    // Check user input
+    // 5. Check user answer
     function checkAnswer() {
       const userAnswer = userInput.value.trim();
       const correctWord = wordDisplay.textContent;
@@ -220,18 +350,20 @@
         return;
       }
 
-      // Compare ignoring case
       if (userAnswer.toLowerCase() === correctWord.toLowerCase()) {
+        // Correct
         score++;
         scoreDisplay.textContent = score;
         message.textContent = "Correct!";
         message.className = "score";
       } else {
+        // Incorrect
         message.textContent = `Incorrect. Correct spelling: "${correctWord}"`;
         message.className = "incorrect";
-        // Add missed word to mistakes if not already present
-        if (!mistakes.includes(correctWord)) {
-          mistakes.push(correctWord);
+
+        // Add missed word to this session's mistakes if not already
+        if (!sessionMistakes.includes(correctWord)) {
+          sessionMistakes.push(correctWord);
         }
       }
 
@@ -239,35 +371,42 @@
       currentIndex++;
       userInput.value = '';
       
-      // Display next word after a short delay
+      // Move to next word after a short delay
       setTimeout(() => {
         message.textContent = "";
         nextWord();
       }, 1500);
     }
 
-    // Quit the game at any time
+    // 6. Quit the game
     function quitGame() {
       if (confirm("Are you sure you want to quit? Your progress will be shown.")) {
         endGame();
       }
     }
 
-    // End game: show result container with score and mistakes
+    // 7. End game: add session mistakes to global mistakes, show result container
     function endGame() {
+      // Merge session mistakes into global
+      sessionMistakes.forEach(mistake => {
+        if (!globalMistakes.includes(mistake)) {
+          globalMistakes.push(mistake);
+        }
+      });
+      saveGlobalMistakesToLocalStorage();
+
       gameContainer.style.display = 'none';
       resultContainer.style.display = 'block';
       finalScore.textContent = score;
-      
-      if (mistakes.length > 0) {
-        mistakesMsg.textContent = 
-          "You need more practice on: " + mistakes.join(", ");
+
+      if (sessionMistakes.length > 0) {
+        mistakesMsg.textContent = "Mistakes from this session: " + sessionMistakes.join(", ");
       } else {
         mistakesMsg.textContent = "Great job! No mistakes this time.";
       }
     }
 
-    // Restart to input new words
+    // 8. Restart game: go back to input screen
     function restartGame() {
       wordsInput.value = "";
       document.getElementById('input-container').style.display = 'block';
