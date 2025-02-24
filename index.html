@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spelling Practice Game</title>
+  <style>
+    /* Basic styling for a clean look */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #fafafa;
+    }
+    h1 {
+      color: #333;
+    }
+    .container {
+      margin-bottom: 20px;
+    }
+    #game-container, #result-container {
+      display: none;
+    }
+    input[type="text"] {
+      padding: 8px;
+      width: 300px;
+      margin-right: 8px;
+      margin-top: 4px;
+    }
+    select {
+      padding: 8px;
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 4px;
+      cursor: pointer;
+      border: 1px solid #ccc;
+      background-color: #fff;
+    }
+    button:hover {
+      background-color: #eaeaea;
+    }
+    .score {
+      font-weight: bold;
+      color: green;
+    }
+    .incorrect {
+      color: red;
+    }
+    #message {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Spelling Practice Game</h1>
+  
+  <!-- Input section for words and settings -->
+  <div id="input-container" class="container">
+    <label for="words">Enter Words (comma-separated):</label><br/>
+    <input type="text" id="words" placeholder="e.g., apple, banana, cat" /><br/><br/>
+    
+    <label for="mode">Select Mode:</label><br/>
+    <select id="mode">
+      <option value="in-line">In-Line (Sequential)</option>
+      <option value="random">Random</option>
+    </select><br/><br/>
+    
+    <button id="start-btn">Start Game</button>
+    <button id="practice-mistakes-btn">Practice Mistakes</button>
+  </div>
+  
+  <!-- Main game container -->
+  <div id="game-container" class="container">
+    <p><strong>Spell the word:</strong> <span id="word-display"></span></p>
+    <input type="text" id="user-input" placeholder="Type the word here" />
+    <button id="check-btn">Check</button>
+    <p id="message"></p>
+    <p>Score: <span id="score">0</span></p>
+    <button id="quit-btn">Quit</button>
+  </div>
+  
+  <!-- Result/score container -->
+  <div id="result-container" class="container">
+    <p>Your final score is: <span id="final-score"></span></p>
+    <p id="mistakes-msg"></p>
+    <button id="restart-btn">Restart</button>
+  </div>
+
+  <script>
+    // Global variables
+    let words = [];          // Words for the current game
+    let mistakes = [];       // List of misspelled words
+    let currentIndex = 0;    // Position in the words array (for in-line)
+    let score = 0;           // Score count
+
+    // HTML element references
+    const wordsInput = document.getElementById('words');
+    const modeSelect = document.getElementById('mode');
+    const startBtn = document.getElementById('start-btn');
+    const practiceMistakesBtn = document.getElementById('practice-mistakes-btn');
+    const gameContainer = document.getElementById('game-container');
+    const wordDisplay = document.getElementById('word-display');
+    const userInput = document.getElementById('user-input');
+    const checkBtn = document.getElementById('check-btn');
+    const message = document.getElementById('message');
+    const scoreDisplay = document.getElementById('score');
+    const quitBtn = document.getElementById('quit-btn');
+    const resultContainer = document.getElementById('result-container');
+    const finalScore = document.getElementById('final-score');
+    const mistakesMsg = document.getElementById('mistakes-msg');
+    const restartBtn = document.getElementById('restart-btn');
+
+    // Event listeners
+    startBtn.addEventListener('click', startGame);
+    practiceMistakesBtn.addEventListener('click', practiceMistakes);
+    checkBtn.addEventListener('click', checkAnswer);
+    quitBtn.addEventListener('click', quitGame);
+    restartBtn.addEventListener('click', restartGame);
+
+    // Start Game - use the words from the input
+    function startGame() {
+      const inputVal = wordsInput.value.trim();
+      
+      // Ensure user entered at least one word
+      if (!inputVal) {
+        alert("Please enter some words first!");
+        return;
+      }
+      
+      // Split on commas, trim spaces, filter out empty strings
+      words = inputVal.split(",").map(w => w.trim()).filter(Boolean);
+      if (words.length === 0) {
+        alert("No valid words were found!");
+        return;
+      }
+
+      // Reset game state
+      score = 0;
+      currentIndex = 0;
+      scoreDisplay.textContent = score;
+      message.textContent = "";
+      finalScore.textContent = "";
+
+      // Hide input section, show game section
+      document.getElementById('input-container').style.display = 'none';
+      resultContainer.style.display = 'none';
+      gameContainer.style.display = 'block';
+
+      // Begin with the first word
+      nextWord();
+    }
+
+    // Practice only mistakes (if any exist)
+    function practiceMistakes() {
+      if (mistakes.length === 0) {
+        alert("No mistakes to practice!");
+        return;
+      }
+      // Use the mistakes array as the new word list
+      words = [...mistakes];
+      mistakes = [];  // Clear mistakes so we can track new ones during practice
+
+      // Reset game state
+      score = 0;
+      currentIndex = 0;
+      scoreDisplay.textContent = score;
+      message.textContent = "";
+      finalScore.textContent = "";
+
+      // Hide input section, show game section
+      document.getElementById('input-container').style.display = 'none';
+      resultContainer.style.display = 'none';
+      gameContainer.style.display = 'block';
+
+      nextWord();
+    }
+
+    // Move to the next word
+    function nextWord() {
+      if (currentIndex >= words.length) {
+        // No more words, end the game
+        endGame();
+        return;
+      }
+      
+      const currentMode = modeSelect.value;
+      let chosenWord;
+
+      // "Random" mode picks a random word from the list
+      // "In-Line" mode picks the next word in sequence
+      if (currentMode === 'random') {
+        const randomIndex = Math.floor(Math.random() * words.length);
+        chosenWord = words[randomIndex];
+      } else {
+        chosenWord = words[currentIndex];
+      }
+
+      // Display and speak the word
+      wordDisplay.textContent = chosenWord;
+      speakWord(chosenWord);
+    }
+
+    // Use SpeechSynthesis to speak the word
+    function speakWord(word) {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(word);
+        speechSynthesis.speak(utterance);
+      }
+    }
+
+    // Check user input
+    function checkAnswer() {
+      const userAnswer = userInput.value.trim();
+      const correctWord = wordDisplay.textContent;
+
+      if (!userAnswer) {
+        message.textContent = "Please type the spelling.";
+        message.className = "";
+        return;
+      }
+
+      // Compare ignoring case
+      if (userAnswer.toLowerCase() === correctWord.toLowerCase()) {
+        score++;
+        scoreDisplay.textContent = score;
+        message.textContent = "Correct!";
+        message.className = "score";
+      } else {
+        message.textContent = `Incorrect. Correct spelling: "${correctWord}"`;
+        message.className = "incorrect";
+        // Add missed word to mistakes if not already present
+        if (!mistakes.includes(correctWord)) {
+          mistakes.push(correctWord);
+        }
+      }
+
+      // Move forward
+      currentIndex++;
+      userInput.value = '';
+      
+      // Display next word after a short delay
+      setTimeout(() => {
+        message.textContent = "";
+        nextWord();
+      }, 1500);
+    }
+
+    // Quit the game at any time
+    function quitGame() {
+      if (confirm("Are you sure you want to quit? Your progress will be shown.")) {
+        endGame();
+      }
+    }
+
+    // End game: show result container with score and mistakes
+    function endGame() {
+      gameContainer.style.display = 'none';
+      resultContainer.style.display = 'block';
+      finalScore.textContent = score;
+      
+      if (mistakes.length > 0) {
+        mistakesMsg.textContent = 
+          "You need more practice on: " + mistakes.join(", ");
+      } else {
+        mistakesMsg.textContent = "Great job! No mistakes this time.";
+      }
+    }
+
+    // Restart to input new words
+    function restartGame() {
+      wordsInput.value = "";
+      document.getElementById('input-container').style.display = 'block';
+      resultContainer.style.display = 'none';
+    }
+  </script>
+</body>
+</html>
