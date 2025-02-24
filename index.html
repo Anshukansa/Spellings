@@ -4,135 +4,231 @@
   <meta charset="UTF-8">
   <title>Spelling Practice with Practice Mistakes</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background-color: #f4f4f4;
+    /********************************************************
+     *                    GLOBAL STYLES
+     ********************************************************/
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-    h1, h2 {
+    
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(to right, #f9fafb, #eef2f3);
       color: #333;
+    }
+
+    h1, h2, h3 {
+      margin-bottom: 1rem;
+      color: #444;
+      font-weight: 600;
+    }
+
+    p {
+      margin-bottom: 1rem;
+    }
+
+    /********************************************************
+     *                    LAYOUT CONTAINERS
+     ********************************************************/
+    .wrapper {
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 0 1rem;
     }
     .container {
       background: #fff;
-      border: 1px solid #ccc;
-      padding: 16px;
-      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgb(0 0 0 / 10%);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      animation: fadeIn 0.4s ease;
     }
-    button {
-      padding: 8px 16px;
-      margin: 6px 0;
-      cursor: pointer;
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /********************************************************
+     *                    FORM ELEMENTS
+     ********************************************************/
+    label {
+      display: inline-block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      margin-bottom: 1rem;
       border: 1px solid #ccc;
-      background-color: #fff;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+
+    /********************************************************
+     *                    BUTTONS
+     ********************************************************/
+    button {
+      display: inline-block;
+      padding: 0.6rem 1.2rem;
+      margin: 0.4rem 0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: background 0.3s ease, color 0.3s ease;
+      background-color: #007bff;
+      color: #fff;
+      text-align: center;
     }
     button:hover {
-      background-color: #eaeaea;
+      background-color: #0056b3;
     }
-    input[type="text"] {
-      padding: 8px;
-      margin: 6px 0;
-      width: 280px;
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
-    select {
-      padding: 8px;
-      margin: 6px 0;
-    }
-    #game-container,
-    #result-container,
-    #list-manager,
-    #mistakes-manager {
-      display: none;
-    }
-    .message {
-      margin-top: 10px;
-      padding: 8px;
-    }
-    .correct {
-      background-color: #d8ffd8;
-      color: green;
-    }
-    .incorrect {
-      background-color: #ffd8d8;
-      color: red;
-    }
+
+    /********************************************************
+     *                    LIST & ITEMS
+     ********************************************************/
     ul {
       list-style-type: none;
       padding-left: 0;
+      margin-bottom: 1rem;
     }
     .list-item {
-      margin: 4px 0;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      padding: 0.5rem;
     }
     .list-item button {
-      margin-left: 10px;
-      padding: 4px 8px;
+      margin: 0;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.9rem;
+      background: #dc3545;
+    }
+    .list-item button:hover {
+      background: #bb2d3b;
+    }
+
+    /********************************************************
+     *                    MESSAGES & FEEDBACK
+     ********************************************************/
+    .message {
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .correct {
+      background-color: #d8ffd8;
+      color: #0f5132;
+    }
+    .incorrect {
+      background-color: #ffd8d8;
+      color: #842029;
+    }
+
+    /********************************************************
+     *                    RESPONSIVE
+     ********************************************************/
+    @media (max-width: 600px) {
+      .wrapper {
+        margin: 1rem auto;
+        padding: 0 1rem;
+      }
+      button {
+        width: 100%;
+        margin-bottom: 0.6rem;
+      }
+      .list-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .list-item button {
+        margin-top: 0.4rem;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Spelling Practice Game</h1>
+  <div class="wrapper">
+    <h1>Spelling Practice Game</h1>
 
-  <!-- ========== HOME / START CONTAINER ========== -->
-  <div id="start-container" class="container">
-    <h2>1. Create or Resume a Game</h2>
-    <div>
-      <label>Enter Words (comma-separated):</label><br>
-      <input type="text" id="words-input" placeholder="e.g., apple, banana, cat">
+    <!-- ========== HOME / START CONTAINER ========== -->
+    <div id="start-container" class="container">
+      <h2>1. Create or Resume a Game</h2>
+      <div>
+        <label>Enter Words (comma-separated):</label>
+        <input type="text" id="words-input" placeholder="e.g., apple, banana, cat">
+      </div>
+      <div>
+        <label>Select Mode:</label>
+        <select id="mode-select">
+          <option value="in-line">In-Line (sequential)</option>
+          <option value="random">Random</option>
+        </select>
+      </div>
+      <button id="new-game-btn">Start New Game</button>
+      <button id="resume-game-btn" style="display:none;">Resume Game</button>
+      <button id="practice-mistakes-btn">Practice Mistakes</button>
+      <button id="manage-list-btn">Manage Current List</button>
+      <button id="manage-all-mistakes-btn">Manage All-Time Mistakes</button>
     </div>
-    <div>
-      <label>Select Mode:</label><br>
-      <select id="mode-select">
-        <option value="in-line">In-Line (sequential)</option>
-        <option value="random">Random</option>
-      </select>
+
+    <!-- ========== LIST MANAGER (CURRENT GAME LIST) ========== -->
+    <div id="list-manager" class="container">
+      <h2>Manage Current Word List</h2>
+      <p>Below are the words currently in your practice list:</p>
+      <ul id="current-word-list"></ul>
+      
+      <h3>Add a new word:</h3>
+      <input type="text" id="add-word-input" placeholder="Type a new word">
+      <button id="add-word-btn">Add Word</button><br><br>
+      
+      <button id="close-list-btn">Close</button>
     </div>
-    <button id="new-game-btn">Start New Game</button>
-    <button id="resume-game-btn">Resume Game</button>
-    <button id="practice-mistakes-btn">Practice Mistakes</button>
-    <button id="manage-list-btn">Manage Current List</button>
-    <button id="manage-all-mistakes-btn">Manage All-Time Mistakes</button>
-  </div>
 
-  <!-- ========== LIST MANAGER (CURRENT GAME LIST) ========== -->
-  <div id="list-manager" class="container">
-    <h2>Manage Current Word List</h2>
-    <p>Below are the words currently in your practice list.</p>
-    <ul id="current-word-list"></ul>
-    
-    <h3>Add a new word</h3>
-    <input type="text" id="add-word-input" placeholder="Type a new word">
-    <button id="add-word-btn">Add Word</button><br><br>
-    
-    <button id="close-list-btn">Close</button>
-  </div>
+    <!-- ========== MISTAKES MANAGER (ALL-TIME MISTAKES) ========== -->
+    <div id="mistakes-manager" class="container">
+      <h2>Manage All-Time Mistakes</h2>
+      <p>Below are the words you’ve spelled incorrectly across all sessions:</p>
+      <ul id="all-mistakes-list"></ul>
+      
+      <h3>Add a new mistake manually:</h3>
+      <input type="text" id="add-mistake-input" placeholder="Word to add">
+      <button id="add-mistake-btn">Add Word</button><br><br>
 
-  <!-- ========== MISTAKES MANAGER (ALL-TIME MISTAKES) ========== -->
-  <div id="mistakes-manager" class="container">
-    <h2>Manage All-Time Mistakes</h2>
-    <p>Below are the words you’ve ever spelled incorrectly (across all sessions):</p>
-    <ul id="all-mistakes-list"></ul>
-    
-    <h3>Add a new mistake manually:</h3>
-    <input type="text" id="add-mistake-input" placeholder="Word to add">
-    <button id="add-mistake-btn">Add Word</button><br><br>
+      <button id="close-mistakes-btn">Close</button>
+    </div>
 
-    <button id="close-mistakes-btn">Close</button>
-  </div>
+    <!-- ========== GAME CONTAINER ========== -->
+    <div id="game-container" class="container">
+      <p><strong>Spell (spoken) word:</strong></p>
+      <input type="text" id="user-spelling" placeholder="Type the spelling">
+      <button id="check-btn">Check</button>
+      <p id="feedback" class="message"></p>
+      <p>Score: <span id="score-display">0</span></p>
+      <button id="quit-btn">Quit Game</button>
+    </div>
 
-  <!-- ========== GAME CONTAINER ========== -->
-  <div id="game-container" class="container">
-    <p><strong>Spell (spoken) word:</strong></p>
-    <input type="text" id="user-spelling" placeholder="Type the spelling">
-    <button id="check-btn">Check</button>
-    <p id="feedback" class="message"></p>
-    <p>Score: <span id="score-display">0</span></p>
-    <button id="quit-btn">Quit Game</button>
-  </div>
-
-  <!-- ========== RESULT CONTAINER ========== -->
-  <div id="result-container" class="container">
-    <h2>Game Over</h2>
-    <p>Your final score is: <span id="final-score"></span></p>
-    <button id="restart-btn">Restart</button>
+    <!-- ========== RESULT CONTAINER ========== -->
+    <div id="result-container" class="container">
+      <h2>Game Over</h2>
+      <p>Your final score is: <span id="final-score"></span></p>
+      <button id="restart-btn">Restart</button>
+    </div>
   </div>
 
   <script>
@@ -288,7 +384,8 @@
 
       // Start a new game using the mistakes array
       gameState.words = [...allTimeMistakes];
-      gameState.mode = modeSelect.value; // Let user pick mode if desired
+      // Optionally, you could force random or let them pick mode:
+      gameState.mode = modeSelect.value; 
       gameState.currentIndex = 0;
       gameState.usedIndices = [];
       gameState.score = 0;
@@ -340,8 +437,6 @@
 
     function closeListManager() {
       listManager.style.display = 'none';
-      // If a game is active, go back to game screen
-      // otherwise, go back to start screen
       if (gameState.isGameActive) {
         gameContainer.style.display = 'block';
       } else {
@@ -397,8 +492,6 @@
 
     function closeMistakesManager() {
       mistakesManager.style.display = 'none';
-      // If the game is active, go back to game screen
-      // otherwise, go back to start screen
       if (gameState.isGameActive) {
         gameContainer.style.display = 'block';
       } else {
@@ -466,7 +559,6 @@
       } else {
         // Random mode
         if (gameState.usedIndices.length === gameState.words.length) {
-          // All used => end game
           endGame();
           return;
         }
@@ -539,6 +631,7 @@
       // Next word after delay
       setTimeout(() => {
         feedback.textContent = '';
+        feedback.className = 'message';
         speakNextWord();
       }, 1500);
     }
