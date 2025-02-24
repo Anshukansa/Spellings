@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Spelling Practice Game</title>
+  <title>Spelling Practice with Practice Mistakes</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -39,7 +39,8 @@
     }
     #game-container,
     #result-container,
-    #list-manager {
+    #list-manager,
+    #mistakes-manager {
       display: none;
     }
     .message {
@@ -86,10 +87,12 @@
     </div>
     <button id="new-game-btn">Start New Game</button>
     <button id="resume-game-btn">Resume Game</button>
+    <button id="practice-mistakes-btn">Practice Mistakes</button>
     <button id="manage-list-btn">Manage Current List</button>
+    <button id="manage-all-mistakes-btn">Manage All-Time Mistakes</button>
   </div>
 
-  <!-- ========== LIST MANAGER ========== -->
+  <!-- ========== LIST MANAGER (CURRENT GAME LIST) ========== -->
   <div id="list-manager" class="container">
     <h2>Manage Current Word List</h2>
     <p>Below are the words currently in your practice list.</p>
@@ -100,6 +103,19 @@
     <button id="add-word-btn">Add Word</button><br><br>
     
     <button id="close-list-btn">Close</button>
+  </div>
+
+  <!-- ========== MISTAKES MANAGER (ALL-TIME MISTAKES) ========== -->
+  <div id="mistakes-manager" class="container">
+    <h2>Manage All-Time Mistakes</h2>
+    <p>Below are the words you’ve ever spelled incorrectly (across all sessions):</p>
+    <ul id="all-mistakes-list"></ul>
+    
+    <h3>Add a new mistake manually:</h3>
+    <input type="text" id="add-mistake-input" placeholder="Word to add">
+    <button id="add-mistake-btn">Add Word</button><br><br>
+
+    <button id="close-mistakes-btn">Close</button>
   </div>
 
   <!-- ========== GAME CONTAINER ========== -->
@@ -123,53 +139,69 @@
     /********************************************************
      *                GLOBAL / STATE VARIABLES
      ********************************************************/
-    const STORAGE_KEY = 'spellingGameState'; // localStorage key
+    const STORAGE_KEY = 'spellingGameState';   // For the current game
+    const MISTAKES_KEY = 'allTimeMistakesList'; // For all-time mistakes
 
     // We'll maintain our game state in an object:
     let gameState = {
-      words: [],           // current list of words
+      words: [],           // current list of words for this game
       mode: 'in-line',     // 'in-line' or 'random'
       currentIndex: 0,     // next word index (for in-line)
-      usedIndices: [],     // used words in 'random' mode to avoid repeats
+      usedIndices: [],     // random mode: track used word indices
       score: 0,
-      isGameActive: false, // are we in the middle of a game?
+      isGameActive: false, // is the game in progress?
     };
+
+    // All-time mistakes array
+    let allTimeMistakes = [];
 
     /********************************************************
      *                    ELEMENT REFERENCES
      ********************************************************/
-    const startContainer   = document.getElementById('start-container');
-    const wordsInput       = document.getElementById('words-input');
-    const modeSelect       = document.getElementById('mode-select');
-    const newGameBtn       = document.getElementById('new-game-btn');
-    const resumeGameBtn    = document.getElementById('resume-game-btn');
-    const manageListBtn    = document.getElementById('manage-list-btn');
-    
-    const listManager      = document.getElementById('list-manager');
-    const currentWordList  = document.getElementById('current-word-list');
-    const addWordInput     = document.getElementById('add-word-input');
-    const addWordBtn       = document.getElementById('add-word-btn');
-    const closeListBtn     = document.getElementById('close-list-btn');
+    // Start/Controls
+    const startContainer           = document.getElementById('start-container');
+    const wordsInput               = document.getElementById('words-input');
+    const modeSelect               = document.getElementById('mode-select');
+    const newGameBtn               = document.getElementById('new-game-btn');
+    const resumeGameBtn            = document.getElementById('resume-game-btn');
+    const practiceMistakesBtn      = document.getElementById('practice-mistakes-btn');
+    const manageListBtn            = document.getElementById('manage-list-btn');
+    const manageAllMistakesBtn     = document.getElementById('manage-all-mistakes-btn');
 
-    const gameContainer    = document.getElementById('game-container');
-    const userSpelling     = document.getElementById('user-spelling');
-    const checkBtn         = document.getElementById('check-btn');
-    const feedback         = document.getElementById('feedback');
-    const scoreDisplay     = document.getElementById('score-display');
-    const quitBtn          = document.getElementById('quit-btn');
-    
-    const resultContainer  = document.getElementById('result-container');
-    const finalScore       = document.getElementById('final-score');
-    const restartBtn       = document.getElementById('restart-btn');
+    // Current List Manager
+    const listManager              = document.getElementById('list-manager');
+    const currentWordList          = document.getElementById('current-word-list');
+    const addWordInput             = document.getElementById('add-word-input');
+    const addWordBtn               = document.getElementById('add-word-btn');
+    const closeListBtn             = document.getElementById('close-list-btn');
+
+    // All-Time Mistakes Manager
+    const mistakesManager          = document.getElementById('mistakes-manager');
+    const allMistakesList          = document.getElementById('all-mistakes-list');
+    const addMistakeInput          = document.getElementById('add-mistake-input');
+    const addMistakeBtn            = document.getElementById('add-mistake-btn');
+    const closeMistakesBtn         = document.getElementById('close-mistakes-btn');
+
+    // Game
+    const gameContainer            = document.getElementById('game-container');
+    const userSpelling             = document.getElementById('user-spelling');
+    const checkBtn                 = document.getElementById('check-btn');
+    const feedback                 = document.getElementById('feedback');
+    const scoreDisplay             = document.getElementById('score-display');
+    const quitBtn                  = document.getElementById('quit-btn');
+
+    // Results
+    const resultContainer          = document.getElementById('result-container');
+    const finalScore               = document.getElementById('final-score');
+    const restartBtn               = document.getElementById('restart-btn');
 
     /********************************************************
      *                      ON LOAD
      ********************************************************/
-    // On page load, try to load existing gameState from localStorage
     document.addEventListener('DOMContentLoaded', () => {
       loadGameState();
+      loadAllTimeMistakes();
       updateResumeButtonVisibility();
-      renderCurrentWordList();
     });
 
     /********************************************************
@@ -177,10 +209,15 @@
      ********************************************************/
     newGameBtn.addEventListener('click', startNewGame);
     resumeGameBtn.addEventListener('click', resumeGame);
-    manageListBtn.addEventListener('click', openListManager);
+    practiceMistakesBtn.addEventListener('click', practiceAllTimeMistakes);
 
+    manageListBtn.addEventListener('click', openListManager);
     addWordBtn.addEventListener('click', addWordToList);
     closeListBtn.addEventListener('click', closeListManager);
+
+    manageAllMistakesBtn.addEventListener('click', openMistakesManager);
+    addMistakeBtn.addEventListener('click', addWordToMistakes);
+    closeMistakesBtn.addEventListener('click', closeMistakesManager);
 
     checkBtn.addEventListener('click', checkSpelling);
     quitBtn.addEventListener('click', quitGame);
@@ -192,7 +229,6 @@
     function saveGameState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
     }
-
     function loadGameState() {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -200,8 +236,16 @@
       }
     }
 
+    function saveAllTimeMistakes() {
+      localStorage.setItem(MISTAKES_KEY, JSON.stringify(allTimeMistakes));
+    }
+    function loadAllTimeMistakes() {
+      const stored = localStorage.getItem(MISTAKES_KEY);
+      allTimeMistakes = stored ? JSON.parse(stored) : [];
+    }
+
     /********************************************************
-     *             START / RESUME / RESTART GAME
+     *             START / RESUME / RESTART / PRACTICE
      ********************************************************/
     function startNewGame() {
       const inputVal = wordsInput.value.trim();
@@ -222,11 +266,11 @@
       gameState.score = 0;
       gameState.isGameActive = true;
 
-      // Save & start
       saveGameState();
       launchGame();
     }
 
+    // Resume the game if isGameActive = true
     function resumeGame() {
       if (!gameState.isGameActive) {
         alert('No active game found to resume!');
@@ -235,29 +279,46 @@
       launchGame();
     }
 
+    // Practice only the all-time mistakes
+    function practiceAllTimeMistakes() {
+      if (!allTimeMistakes || allTimeMistakes.length === 0) {
+        alert("You have no all-time mistakes to practice!");
+        return;
+      }
+
+      // Start a new game using the mistakes array
+      gameState.words = [...allTimeMistakes];
+      gameState.mode = modeSelect.value; // Let user pick mode if desired
+      gameState.currentIndex = 0;
+      gameState.usedIndices = [];
+      gameState.score = 0;
+      gameState.isGameActive = true;
+      saveGameState();
+      launchGame();
+    }
+
     function restart() {
-      // Clear final screen, return to start
       resultContainer.style.display = 'none';
       startContainer.style.display = 'block';
     }
 
     function launchGame() {
-      // Hide start container, show game container
+      // Hide other containers, show game container
       startContainer.style.display = 'none';
       listManager.style.display = 'none';
+      mistakesManager.style.display = 'none';
       resultContainer.style.display = 'none';
       gameContainer.style.display = 'block';
 
-      // Update score UI
+      // Update UI
       scoreDisplay.textContent = gameState.score;
       feedback.textContent = '';
 
-      // Prompt the user with the next spelling (spoken only)
+      // Speak the next word
       speakNextWord();
     }
 
     function updateResumeButtonVisibility() {
-      // Show "Resume Game" only if isGameActive is true
       if (gameState.isGameActive) {
         resumeGameBtn.style.display = 'inline-block';
       } else {
@@ -266,23 +327,22 @@
     }
 
     /********************************************************
-     *                  LIST MANAGER
+     *                  LIST MANAGER (CURRENT)
      ********************************************************/
     function openListManager() {
-      // Render the current words
       renderCurrentWordList();
-      // Show the manager
       startContainer.style.display = 'none';
       listManager.style.display = 'block';
       gameContainer.style.display = 'none';
+      mistakesManager.style.display = 'none';
       resultContainer.style.display = 'none';
     }
 
     function closeListManager() {
       listManager.style.display = 'none';
-      // If the game is active, return to game screen
-      // otherwise return to start screen
-      if (gameState.isGameActive && gameContainer.style.display === 'block') {
+      // If a game is active, go back to game screen
+      // otherwise, go back to start screen
+      if (gameState.isGameActive) {
         gameContainer.style.display = 'block';
       } else {
         startContainer.style.display = 'block';
@@ -291,16 +351,17 @@
 
     function renderCurrentWordList() {
       currentWordList.innerHTML = '';
-      // We'll use gameState.words to populate
       gameState.words.forEach((word, index) => {
         const li = document.createElement('li');
         li.classList.add('list-item');
         li.textContent = word;
-        
+
         const removeBtn = document.createElement('button');
         removeBtn.textContent = 'Remove';
-        removeBtn.addEventListener('click', () => removeWordFromList(index));
-        
+        removeBtn.addEventListener('click', () => {
+          removeWordFromList(index);
+        });
+
         li.appendChild(removeBtn);
         currentWordList.appendChild(li);
       });
@@ -318,25 +379,84 @@
 
     function removeWordFromList(index) {
       gameState.words.splice(index, 1);
-      // If we remove the word in the middle of a game, it might affect random mode or indexing
-      // but we’ll keep it simple: the code will adapt on next pick.
       saveGameState();
       renderCurrentWordList();
     }
 
     /********************************************************
-     *                GAME LOGIC & FUNCTIONS
+     *             ALL-TIME MISTAKES MANAGER
+     ********************************************************/
+    function openMistakesManager() {
+      renderAllTimeMistakes();
+      startContainer.style.display = 'none';
+      listManager.style.display = 'none';
+      mistakesManager.style.display = 'block';
+      gameContainer.style.display = 'none';
+      resultContainer.style.display = 'none';
+    }
+
+    function closeMistakesManager() {
+      mistakesManager.style.display = 'none';
+      // If the game is active, go back to game screen
+      // otherwise, go back to start screen
+      if (gameState.isGameActive) {
+        gameContainer.style.display = 'block';
+      } else {
+        startContainer.style.display = 'block';
+      }
+    }
+
+    function renderAllTimeMistakes() {
+      allMistakesList.innerHTML = '';
+      allTimeMistakes.forEach((word, index) => {
+        const li = document.createElement('li');
+        li.classList.add('list-item');
+        li.textContent = word;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => {
+          removeWordFromMistakes(index);
+        });
+
+        li.appendChild(removeBtn);
+        allMistakesList.appendChild(li);
+      });
+    }
+
+    function addWordToMistakes() {
+      const newWord = addMistakeInput.value.trim();
+      if (newWord) {
+        if (!allTimeMistakes.includes(newWord)) {
+          allTimeMistakes.push(newWord);
+          saveAllTimeMistakes();
+        } else {
+          alert("Word is already in the all-time mistakes list!");
+        }
+      }
+      addMistakeInput.value = '';
+      renderAllTimeMistakes();
+    }
+
+    function removeWordFromMistakes(index) {
+      allTimeMistakes.splice(index, 1);
+      saveAllTimeMistakes();
+      renderAllTimeMistakes();
+    }
+
+    /********************************************************
+     *                GAME FLOW & LOGIC
      ********************************************************/
     // 1. Speak the next word (do not display it)
     function speakNextWord() {
       if (!gameState.words || gameState.words.length === 0) {
-        // No words to speak => End game
+        // No words => End game
         endGame();
         return;
       }
 
       if (gameState.mode === 'in-line') {
-        // If in-line mode, check if currentIndex is out of range
+        // If in-line, check range
         if (gameState.currentIndex >= gameState.words.length) {
           endGame();
           return;
@@ -346,7 +466,7 @@
       } else {
         // Random mode
         if (gameState.usedIndices.length === gameState.words.length) {
-          // All words used => end game
+          // All used => end game
           endGame();
           return;
         }
@@ -370,16 +490,16 @@
       }
     }
 
-    // 3. Check the user’s spelling
+    // 3. Check user's spelling
     function checkSpelling() {
       const userAnswer = userSpelling.value.trim();
       userSpelling.value = '';
 
-      let correctWord = '';
+      let correctWord;
       if (gameState.mode === 'in-line') {
         correctWord = gameState.words[gameState.currentIndex];
       } else {
-        // Random mode => last used index is the last element of usedIndices
+        // random => last used index is the last in usedIndices
         const lastIndex = gameState.usedIndices[gameState.usedIndices.length - 1];
         correctWord = gameState.words[lastIndex];
       }
@@ -399,18 +519,24 @@
         // Incorrect
         feedback.textContent = `Incorrect! The correct spelling is "${correctWord}".`;
         feedback.className = 'message incorrect';
+
+        // Add to allTimeMistakes if not already
+        if (!allTimeMistakes.includes(correctWord)) {
+          allTimeMistakes.push(correctWord);
+          saveAllTimeMistakes();
+        }
       }
 
-      // Update index if in-line
+      // Advance index if in-line
       if (gameState.mode === 'in-line') {
         gameState.currentIndex++;
       }
-      
-      // Update score display & save
+
+      // Update score
       scoreDisplay.textContent = gameState.score;
       saveGameState();
 
-      // Move to next word after a short delay
+      // Next word after delay
       setTimeout(() => {
         feedback.textContent = '';
         speakNextWord();
@@ -434,7 +560,7 @@
       resultContainer.style.display = 'block';
       finalScore.textContent = gameState.score;
       
-      // Refresh the resume button visibility
+      // Update resume button
       updateResumeButtonVisibility();
     }
   </script>
