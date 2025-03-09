@@ -6,161 +6,205 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     /********************************************************
-     *                    GLOBAL STYLES
-     ********************************************************/
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      font-family: "Helvetica Neue", Arial, sans-serif;
-      background: linear-gradient(to right, #f9fafb, #eef2f3);
-      color: #333;
-    }
+ *               GLOBAL STYLES & RESET
+ ********************************************************/
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-    h1, h2, h3 {
-      margin-bottom: 1rem;
-      color: #444;
-      font-weight: 600;
-    }
+body {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(to right, #f9fafb, #eef2f3);
+  color: #333;
+  line-height: 1.6;
+}
 
-    p {
-      margin-bottom: 1rem;
-    }
+/********************************************************
+ *                    HEADINGS & PARAGRAPHS
+ ********************************************************/
+h1, h2, h3 {
+  margin-bottom: 1rem;
+  color: #444;
+  font-weight: 600;
+}
 
-    /********************************************************
-     *                    LAYOUT CONTAINERS
-     ********************************************************/
-    .wrapper {
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-    .container {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgb(0 0 0 / 10%);
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      animation: fadeIn 0.4s ease;
-    }
+p {
+  margin-bottom: 1rem;
+}
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+/********************************************************
+ *               LAYOUT CONTAINERS & VISIBILITY
+ ********************************************************/
+.wrapper {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
 
-    /********************************************************
-     *                    FORM ELEMENTS
-     ********************************************************/
-    label {
-      display: inline-block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-    }
+.container {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 10%);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  animation: fadeIn 0.4s ease;
+  position: relative;
+}
 
-    input[type="text"], select {
-      width: 100%;
-      padding: 0.6rem 0.8rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-      font-family: inherit;
-    }
+/* Utility class to toggle visibility */
+.hidden {
+  display: none !important;
+}
 
-    /********************************************************
-     *                    BUTTONS
-     ********************************************************/
-    button {
-      display: inline-block;
-      padding: 0.6rem 1.2rem;
-      margin: 0.4rem 0;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-      font-family: inherit;
-      transition: background 0.3s ease, color 0.3s ease;
-      background-color: #007bff;
-      color: #fff;
-      text-align: center;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-    /********************************************************
-     *                    LIST & ITEMS
-     ********************************************************/
-    ul {
-      list-style-type: none;
-      padding-left: 0;
-      margin-bottom: 1rem;
-    }
-    .list-item {
-      margin-bottom: 0.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border: 1px solid #eee;
-      border-radius: 4px;
-      padding: 0.5rem;
-    }
-    .list-item button {
-      margin: 0;
-      padding: 0.4rem 0.6rem;
-      font-size: 0.9rem;
-      background: #dc3545;
-    }
-    .list-item button:hover {
-      background: #bb2d3b;
-    }
+/********************************************************
+ *                   FORM ELEMENTS
+ ********************************************************/
+label {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
 
-    /********************************************************
-     *                    MESSAGES & FEEDBACK
-     ********************************************************/
-    .message {
-      margin-top: 1rem;
-      padding: 0.8rem;
-      border-radius: 4px;
-      font-weight: 500;
-    }
-    .correct {
-      background-color: #d8ffd8;
-      color: #0f5132;
-    }
-    .incorrect {
-      background-color: #ffd8d8;
-      color: #842029;
-    }
+input[type="text"], select {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
 
-    /********************************************************
-     *                    RESPONSIVE
-     ********************************************************/
-    @media (max-width: 600px) {
-      .wrapper {
-        margin: 1rem auto;
-        padding: 0 1rem;
-      }
-      button {
-        width: 100%;
-        margin-bottom: 0.6rem;
-      }
-      .list-item {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .list-item button {
-        margin-top: 0.4rem;
-      }
-    }
+input[type="text"]:focus, select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+  outline: none;
+}
+
+/********************************************************
+ *                      BUTTONS
+ ********************************************************/
+button {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  margin: 0.4rem 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: background 0.3s ease, color 0.3s ease;
+  background-color: #007bff;
+  color: #fff;
+  text-align: center;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+button:disabled,
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/********************************************************
+ *                    LIST & ITEMS
+ ********************************************************/
+ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin-bottom: 1rem;
+}
+
+.list-item {
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 0.5rem;
+  transition: background-color 0.3s ease;
+}
+
+.list-item:hover {
+  background-color: #f8f9fa;
+}
+
+.list-item button {
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.9rem;
+  background: #dc3545;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.list-item button:hover {
+  background: #bb2d3b;
+}
+
+/********************************************************
+ *                 MESSAGES & FEEDBACK
+ ********************************************************/
+.message {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.message.correct {
+  background-color: #d8ffd8;
+  color: #0f5132;
+}
+
+.message.incorrect {
+  background-color: #ffd8d8;
+  color: #842029;
+}
+
+/* Emphasize score displays */
+#score-display,
+#final-score {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/********************************************************
+ *                   RESPONSIVE DESIGN
+ ********************************************************/
+@media (max-width: 600px) {
+  .wrapper {
+    margin: 1rem auto;
+    padding: 0 1rem;
+  }
+  button {
+    width: 100%;
+    margin-bottom: 0.6rem;
+  }
+  .list-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .list-item button {
+    margin-top: 0.4rem;
+  }
+}
+
   </style>
 </head>
 <body>
